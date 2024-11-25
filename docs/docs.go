@@ -106,7 +106,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SongCreate"
+                            "$ref": "#/definitions/models.SongCreateQuery"
                         }
                     }
                 ],
@@ -337,6 +337,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "link": {
+                    "type": "string"
+                },
                 "releaseDate": {
                     "type": "string"
                 },
@@ -345,16 +348,20 @@ const docTemplate = `{
                 }
             }
         },
-        "models.SongCreate": {
+        "models.SongCreateQuery": {
             "type": "object",
             "required": [
                 "group",
+                "link",
                 "releaseDate",
                 "song",
                 "text"
             ],
             "properties": {
                 "group": {
+                    "type": "string"
+                },
+                "link": {
                     "type": "string"
                 },
                 "releaseDate": {
@@ -377,6 +384,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "link": {
+                    "type": "string"
+                },
                 "releaseDate": {
                     "type": "string"
                 },
@@ -392,6 +402,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "group": {
+                    "type": "string"
+                },
+                "link": {
                     "type": "string"
                 },
                 "releaseDate": {

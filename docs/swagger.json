@@ -100,7 +100,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SongCreate"
+                            "$ref": "#/definitions/models.SongCreateQuery"
                         }
                     }
                 ],
@@ -331,6 +331,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "link": {
+                    "type": "string"
+                },
                 "releaseDate": {
                     "type": "string"
                 },
@@ -339,16 +342,20 @@
                 }
             }
         },
-        "models.SongCreate": {
+        "models.SongCreateQuery": {
             "type": "object",
             "required": [
                 "group",
+                "link",
                 "releaseDate",
                 "song",
                 "text"
             ],
             "properties": {
                 "group": {
+                    "type": "string"
+                },
+                "link": {
                     "type": "string"
                 },
                 "releaseDate": {
@@ -371,6 +378,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "link": {
+                    "type": "string"
+                },
                 "releaseDate": {
                     "type": "string"
                 },
@@ -386,6 +396,9 @@
             "type": "object",
             "properties": {
                 "group": {
+                    "type": "string"
+                },
+                "link": {
                     "type": "string"
                 },
                 "releaseDate": {

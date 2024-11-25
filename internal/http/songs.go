@@ -55,10 +55,10 @@ func (h *Handler) ListAllSongs(c *gin.Context) {
 //	@Tags			Songs
 //	@Accept			json
 //	@Produce		json
-//	@Param			body	body		models.SongCreate	true	"Song details"
-//	@Success		200		{object}	models.Message		"OK response with success message"
-//	@Failure		400		{object}	models.Message		"Bad request, invalid data"
-//	@Failure		500		{object}	models.Message		"Internal server error"
+//	@Param			body	body		models.SongCreateQuery	true	"Song details"
+//	@Success		200		{object}	models.Message			"OK response with success message"
+//	@Failure		400		{object}	models.Message			"Bad request, invalid data"
+//	@Failure		500		{object}	models.Message			"Internal server error"
 //	@Router			/songs [post]
 func (h *Handler) CreateSong(c *gin.Context) {
 	var scq models.SongCreateQuery
