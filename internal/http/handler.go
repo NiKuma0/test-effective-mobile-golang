@@ -25,7 +25,7 @@ func (h *Handler) TransactionMiddleware(c *gin.Context) {
 	tr, _ := h.songsRepo.Begin()
 	c.Next()
 	statusCode := c.Writer.Status()
-	if http.StatusOK >= statusCode && statusCode < http.StatusBadRequest {
+	if statusCode >= http.StatusOK && statusCode < http.StatusBadRequest {
 		tr.Commit()
 	}
 	if statusCode >= http.StatusBadRequest {
