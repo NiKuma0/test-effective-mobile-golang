@@ -1,0 +1,287 @@
+basePath: /api/v1
+definitions:
+  models.ListAllSongs:
+    properties:
+      amount:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/models.Song'
+        type: array
+      next:
+        type: boolean
+      ok:
+        type: boolean
+      page:
+        type: integer
+    type: object
+  models.Message:
+    properties:
+      msg:
+        type: string
+      ok:
+        type: boolean
+    type: object
+  models.Song:
+    properties:
+      group:
+        type: string
+      id:
+        type: integer
+      releaseDate:
+        type: string
+      song:
+        type: string
+    type: object
+  models.SongCreate:
+    properties:
+      group:
+        type: string
+      releaseDate:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    required:
+    - group
+    - releaseDate
+    - song
+    - text
+    type: object
+  models.SongDetail:
+    properties:
+      group:
+        type: string
+      id:
+        type: integer
+      releaseDate:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    type: object
+  models.SongUpdate:
+    properties:
+      group:
+        type: string
+      releaseDate:
+        type: string
+      song:
+        type: string
+      text:
+        type: string
+    type: object
+  models.SongsText:
+    properties:
+      amount:
+        type: integer
+      data:
+        items:
+          type: string
+        type: array
+      next:
+        type: boolean
+      ok:
+        type: boolean
+      page:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is the server, why do you read this?
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Songs API
+  version: "1.0"
+paths:
+  /songs:
+    get:
+      description: Paginate all songs filtered by song name or/and group name.
+      parameters:
+      - description: Page (starts with 0)
+        in: query
+        name: page
+        type: integer
+      - description: Maximum elements (default 10)
+        in: query
+        name: max
+        type: integer
+      - description: Group name
+        in: query
+        name: group
+        type: string
+      - description: Song name
+        in: query
+        name: song
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of songs with pagination details
+          schema:
+            $ref: '#/definitions/models.ListAllSongs'
+        "400":
+          description: Bad request, invalid parameters
+          schema:
+            $ref: '#/definitions/models.Message'
+        "404":
+          description: Not found, no songs match the criteria or page is empty
+          schema:
+            $ref: '#/definitions/models.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.Message'
+      summary: Show all songs
+      tags:
+      - Songs
+    post:
+      consumes:
+      - application/json
+      description: Creates a new song in the database with the provided details.
+      parameters:
+      - description: Song details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SongCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK response with success message
+          schema:
+            $ref: '#/definitions/models.Message'
+        "400":
+          description: Bad request, invalid data
+          schema:
+            $ref: '#/definitions/models.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.Message'
+      summary: Create a new song
+      tags:
+      - Songs
+  /songs/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Update one or more fields of a specific song by its ID.
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SongUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song successfully updated
+          schema:
+            $ref: '#/definitions/models.Message'
+        "400":
+          description: Invalid song ID
+          schema:
+            $ref: '#/definitions/models.Message'
+        "404":
+          description: Song not found
+          schema:
+            $ref: '#/definitions/models.Message'
+        "502":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.Message'
+      summary: Update a song
+      tags:
+      - Songs
+  /songs/{id}/text:
+    get:
+      description: Fetches the text of a song given its ID, along with pagination
+        details.
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - description: Maximum number of items per page
+        in: query
+        name: max
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful response containing song text
+          schema:
+            $ref: '#/definitions/models.SongsText'
+        "404":
+          description: Song not found
+          schema:
+            $ref: '#/definitions/models.Message'
+        "502":
+          description: Internal error or invalid input
+          schema:
+            $ref: '#/definitions/models.Message'
+      summary: Retrieve song text by ID
+      tags:
+      - Songs
+  /songs/info:
+    get:
+      description: Retrieve detailed information about a song based on the provided
+        query parameters.
+      parameters:
+      - description: Group name
+        in: query
+        name: group
+        required: true
+        type: string
+      - description: Song name
+        in: query
+        name: song
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Song details
+          schema:
+            $ref: '#/definitions/models.SongDetail'
+        "404":
+          description: Song not found
+          schema:
+            $ref: '#/definitions/models.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.Message'
+      summary: Get details of a specific song
+      tags:
+      - Songs
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"
