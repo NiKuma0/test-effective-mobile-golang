@@ -15,11 +15,16 @@ import (
 
 	handlers "github.com/nikuma0/test-effective-mobile-golang/internal/http"
 	"github.com/nikuma0/test-effective-mobile-golang/internal/models"
+	"github.com/nikuma0/test-effective-mobile-golang/internal/repository/postgresql"
 	"github.com/nikuma0/test-effective-mobile-golang/internal/utils"
 )
 
 type MockSongsRepository struct {
 	mock.Mock
+}
+
+func (m *MockSongsRepository) Begin() (*postgresql.Transaction, error) {
+	return &postgresql.Transaction{}, nil
 }
 
 func (m *MockSongsRepository) CheckIfExists(ctx context.Context, songId int) (bool, error) {
@@ -55,6 +60,14 @@ func (m *MockSongsRepository) CreateSong(ctx context.Context, scq *models.SongCr
 func (m *MockSongsRepository) UpdateSong(ctx context.Context, su *models.SongUpdate, songId int) error {
 	args := m.Called(ctx, su)
 	return args.Error(0)
+}
+
+func initHelper() (*gin.Engine, handlers.Handler, *MockSongsRepository) {
+	mockRepo := new(MockSongsRepository)
+	handler := handlers.NewTest(mockRepo)
+	r := gin.Default()
+	handler.Routes(r.Group(""))
+	return r, handler, mockRepo
 }
 
 func TestCreateSong(t *testing.T) {
@@ -98,12 +111,8 @@ func TestCreateSong(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		mockRepo := new(MockSongsRepository)
-		handler := handlers.New(mockRepo)
-		r := gin.Default()
-		handler.Routes(r.Group(""))
-
 		t.Run(tc.name, func(t *testing.T) {
+			r, _, mockRepo := initHelper()
 			if tc.isRepoCalled {
 				mockRepo.On("CreateSong", mock.Anything, tc.createSongData).Return(nil)
 			}
@@ -116,14 +125,9 @@ func TestCreateSong(t *testing.T) {
 }
 
 func TestSongs(t *testing.T) {
-	mockRepo := new(MockSongsRepository)
-	handler := handlers.New(mockRepo)
-
-	r := gin.Default()
-	handler.Routes(r.Group(""))
-
 	t.Run("Get all songs", func(t *testing.T) {
-		date := time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC)
+		r, _, mockRepo := initHelper()
+		date := models.DateFormat(time.Date(2024, 11, 23, 0, 0, 0, 0, time.UTC))
 		expectedSongs := []models.Song{
 			{Id: 1, Name: "Song 1", GroupName: "Group 1", ReleaseDate: date},
 			{Id: 2, Name: "Song 2", GroupName: "Group 1", ReleaseDate: date},
@@ -141,11 +145,12 @@ func TestSongs(t *testing.T) {
 	})
 
 	t.Run("Create song", func(t *testing.T) {
+		r, _, mockRepo := initHelper()
 		newSong := &models.SongCreateQuery{
 			Group:       "Group",
 			Song:        "Song",
 			Text:        "Text",
-			ReleaseDate: utils.Ptr(time.Date(2022, 11, 8, 0, 0, 0, 0, time.UTC)),
+			ReleaseDate: utils.Ptr(models.DateFormat(time.Date(2022, 11, 8, 0, 0, 0, 0, time.UTC))),
 		}
 		mockRepo.On("CreateSong", mock.Anything, newSong).Return(nil)
 		w := performRequestWithBody(r, "POST", "/songs", newSong)

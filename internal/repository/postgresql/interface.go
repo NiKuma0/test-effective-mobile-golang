@@ -13,4 +13,5 @@ type SongsRepositoryI interface {
 	UpdateSong(ctx context.Context, su *models.SongUpdate, songId int) error
 	CheckIfExists(ctx context.Context, songId int) (bool, error)
 	GetSongText(ctx context.Context, songId int, pmq *models.PageMaxQuery) ([]string, int, error)
+	Begin() (*Transaction, error)
 }

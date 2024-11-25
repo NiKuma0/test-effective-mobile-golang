@@ -74,7 +74,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(utils.LoggerMiddleware())
-	handler := http.New(postgresql.NewSongsRepository(db))
+	handler := http.New(func() postgresql.SongsRepositoryI { return postgresql.NewSongsRepository(db) })
 	v1 := r.Group("/api/v1")
 	handler.Routes(v1)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))

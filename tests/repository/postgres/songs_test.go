@@ -83,16 +83,30 @@ func newTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func compareDates(t *testing.T, excepted, actual *time.Time) {
-	assert.Equal(t, excepted.Year(), actual.Year())
-	assert.Equal(t, excepted.Month(), actual.Month())
-	assert.Equal(t, excepted.Day(), actual.Day())
+func initHelper(t *testing.T, load bool) (db *sql.DB) {
+	db = newTestDB(t)
+	if load {
+		initFixtures(t, db)
+	}
+	return
+}
+
+func initRepo(t *testing.T, db *sql.DB) postgresql.SongsRepository {
+	repo := *postgresql.NewSongsRepository(db)
+	tr, err := repo.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+	t.Cleanup(func() { tr.Rollback() })
+	return repo
+}
+
+func compareDates(t *testing.T, excepted, actual time.Time) {
+	assert.Equal(t, excepted.Format("2006-01-02"), actual.Format("2006-01-02"))
 }
 
 func TestCreateSong(t *testing.T) {
 	db := newTestDB(t)
-	repo := postgresql.NewSongsRepository(db)
-
 	ctx := context.Background()
 
 	createSongCases := []struct {
@@ -108,7 +122,7 @@ func TestCreateSong(t *testing.T) {
 				Song:        "Test Song",
 				Group:       "Test Group",
 				Text:        "Some lyrics",
-				ReleaseDate: utils.Ptr(time.Now()),
+				ReleaseDate: utils.Ptr(models.DateFormat(time.Now())),
 			},
 			getSong: &models.SongDetailQuery{
 				Group: "Test Group",
@@ -131,6 +145,7 @@ func TestCreateSong(t *testing.T) {
 
 	for _, tc := range createSongCases {
 		t.Run(tc.name, func(t *testing.T) {
+			repo := initRepo(t, db)
 			err := repo.CreateSong(ctx, tc.song)
 			if tc.returnErr {
 				require.Error(t, err, tc.errMsgAndArgs...)
@@ -143,9 +158,9 @@ func TestCreateSong(t *testing.T) {
 			assert.Equal(t, tc.song.Song, song.Name)
 			assert.Equal(t, tc.song.Group, song.GroupName)
 			if tc.song.ReleaseDate != nil {
-				compareDates(t, tc.song.ReleaseDate, &song.ReleaseDate)
+				compareDates(t, time.Time(*tc.song.ReleaseDate), time.Time(song.ReleaseDate))
 			} else {
-				compareDates(t, utils.Ptr(time.Now()), &song.ReleaseDate)
+				compareDates(t, time.Now(), time.Time(song.ReleaseDate))
 			}
 		})
 	}
@@ -153,11 +168,10 @@ func TestCreateSong(t *testing.T) {
 }
 
 func TestGetSong(t *testing.T) {
-	db := newTestDB(t)
-	repo := postgresql.NewSongsRepository(db)
+	db := initHelper(t, true)
 
 	t.Run("GetSong", func(t *testing.T) {
-		initFixtures(t, db)
+		repo := initRepo(t, db)
 		ctx := context.Background()
 		song, err := repo.GetSong(ctx, &models.SongDetailQuery{Group: "Group 2", Song: "Song 1"})
 		require.NoError(t, err)
@@ -167,14 +181,14 @@ func TestGetSong(t *testing.T) {
 	})
 
 	t.Run("GetNotExistsSong", func(t *testing.T) {
-		initFixtures(t, db)
+		repo := initRepo(t, db)
 		ctx := context.Background()
 		_, err := repo.GetSong(ctx, &models.SongDetailQuery{Group: "Never existed group", Song: "Never existed song"})
 		require.Error(t, err, sql.ErrNoRows)
 	})
 
 	t.Run("Pagination", func(t *testing.T) {
-		initFixtures(t, db)
+		repo := initRepo(t, db)
 		ctx := context.Background()
 		songs, _, err := repo.GetSongs(ctx, &models.SongsQuery{Max: 5, Page: 0})
 		require.NoError(t, err)
@@ -183,18 +197,18 @@ func TestGetSong(t *testing.T) {
 }
 
 func TestCheckIfExists(t *testing.T) {
-	db := newTestDB(t)
-	repo := postgresql.NewSongsRepository(db)
-	ctx := context.Background()
-	initFixtures(t, db)
-
+	db := initHelper(t, true)
 	t.Run("ExistingSong", func(t *testing.T) {
+		repo := initRepo(t, db)
+		ctx := context.Background()
 		exists, err := repo.CheckIfExists(ctx, 2)
 		require.NoError(t, err)
 		assert.True(t, exists)
 	})
 
 	t.Run("NonExistingSong", func(t *testing.T) {
+		repo := initRepo(t, db)
+		ctx := context.Background()
 		exists, err := repo.CheckIfExists(ctx, 999)
 		require.NoError(t, err)
 		assert.False(t, exists)
@@ -203,17 +217,15 @@ func TestCheckIfExists(t *testing.T) {
 }
 
 func TestUpdateSong(t *testing.T) {
-	db := newTestDB(t)
-	repo := postgresql.NewSongsRepository(db)
-	ctx := context.Background()
-	initFixtures(t, db)
-
+	db := initHelper(t, true)
 	t.Run("UpdateAllFields", func(t *testing.T) {
+		repo := initRepo(t, db)
+		ctx := context.Background()
 		songUpdate := &models.SongUpdate{
 			Name:        utils.Ptr("Updated Song"),
 			GroupName:   utils.Ptr("Updated Group"),
 			Text:        utils.Ptr("Updated lyrics"),
-			ReleaseDate: utils.Ptr(time.Now().AddDate(0, 0, -1)),
+			ReleaseDate: utils.Ptr(models.DateFormat(time.Now().AddDate(0, 0, -1))),
 		}
 		err := repo.UpdateSong(ctx, songUpdate, 1)
 		require.NoError(t, err)
@@ -224,31 +236,32 @@ func TestUpdateSong(t *testing.T) {
 		assert.Equal(t, "Updated Song", updatedSong.Name)
 		assert.Equal(t, "Updated Group", updatedSong.GroupName)
 		assert.Equal(t, "Updated lyrics", updatedSong.Text)
-		compareDates(t, songUpdate.ReleaseDate, &updatedSong.ReleaseDate)
+		compareDates(t, time.Time(*songUpdate.ReleaseDate), time.Time(updatedSong.ReleaseDate))
 	})
 
 	t.Run("UpdatePartialFields", func(t *testing.T) {
+		repo := initRepo(t, db)
+		ctx := context.Background()
 		songUpdate := &models.SongUpdate{
 			Name: utils.Ptr("Partially Updated Song"),
 		}
 		err := repo.UpdateSong(ctx, songUpdate, 1)
 		require.NoError(t, err)
 
-		updatedSong, err := repo.GetSong(ctx, &models.SongDetailQuery{Group: "Updated Group", Song: "Partially Updated Song"})
+		updatedSong, err := repo.GetSong(ctx, &models.SongDetailQuery{Group: "Group 2", Song: "Partially Updated Song"})
 		require.NoError(t, err)
 
 		assert.Equal(t, "Partially Updated Song", updatedSong.Name)
-		assert.Equal(t, "Updated Group", updatedSong.GroupName)
+		assert.Equal(t, "Group 2", updatedSong.GroupName)
 	})
 }
 
 func TestGetSongText(t *testing.T) {
-	db := newTestDB(t)
-	repo := postgresql.NewSongsRepository(db)
-	ctx := context.Background()
-	initFixtures(t, db)
+	db := initHelper(t, true)
 
 	t.Run("GetSongTextWithPagination", func(t *testing.T) {
+		repo := initRepo(t, db)
+		ctx := context.Background()
 		pageQuery := &models.PageMaxQuery{
 			Page: 0,
 			Max:  2,

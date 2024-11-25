@@ -9,14 +9,50 @@ import (
 	"github.com/nikuma0/test-effective-mobile-golang/internal/models"
 )
 
+type executor interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
 type SongsRepository struct {
-	pool *sql.DB
+	pool executor
+	db   *sql.DB
+}
+
+type Transaction struct {
+	repo *SongsRepository
 }
 
 func NewSongsRepository(pool *sql.DB) *SongsRepository {
 	return &SongsRepository{
 		pool: pool,
+		db:   pool,
 	}
+}
+
+func (sr *SongsRepository) Begin() (tr *Transaction, err error) {
+	tx, err := sr.db.Begin()
+	if err != nil {
+		return
+	}
+	sr.pool = tx
+	tr = &Transaction{
+		repo: sr,
+	}
+	return
+}
+
+func (tr *Transaction) Commit() error {
+	err := tr.repo.pool.(*sql.Tx).Commit()
+	tr.repo.pool = tr.repo.db
+	return err
+}
+
+func (tr *Transaction) Rollback() error {
+	err := tr.repo.pool.(*sql.Tx).Rollback()
+	tr.repo.pool = tr.repo.db
+	return err
 }
 
 func (sr *SongsRepository) GetSong(ctx context.Context, sdq *models.SongDetailQuery) (models.SongDetail, error) {
@@ -42,8 +78,8 @@ func (sr *SongsRepository) GetSong(ctx context.Context, sdq *models.SongDetailQu
 }
 
 func (sr *SongsRepository) GetSongs(ctx context.Context, sq *models.SongsQuery) (res []models.Song, amount int, err error) {
-	// ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	// defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	var releaseDate any
 	if sq.ReleaseDate != nil {
@@ -91,13 +127,21 @@ func (sr *SongsRepository) GetSongs(ctx context.Context, sq *models.SongsQuery) 
 func (sr *SongsRepository) CreateSong(ctx context.Context, scq *models.SongCreateQuery) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	stmt := `
+	INSERT INTO songs (name, group_name, text, release_date) VALUES ($1, $2, $3, $4);
+	`
+	args := []any{scq.Song, scq.Group, scq.Text, scq.ReleaseDate}
+	if scq.ReleaseDate == nil {
+		stmt = `
+		INSERT INTO songs (name, group_name, text) VALUES ($1, $2, $3);
+		`
+		args = args[:len(args)-1]
+	}
 
 	_, err := sr.pool.ExecContext(
 		ctx,
-		`
-		INSERT INTO songs (name, group_name, text, release_date) VALUES ($1, $2, $3, $4);
-		`,
-		scq.Song, scq.Group, scq.Text, scq.ReleaseDate,
+		stmt,
+		args...,
 	)
 	return err
 }

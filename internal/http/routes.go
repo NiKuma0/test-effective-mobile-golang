@@ -6,7 +6,7 @@ import (
 
 func (h *Handler) Routes(group *gin.RouterGroup) {
 	songs := group.Group("/songs")
-	songs.Use()
+	songs.Use(h.TransactionMiddleware)
 	{
 		songs.GET("", h.ListAllSongs)
 		songs.POST("", h.CreateSong)
