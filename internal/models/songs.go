@@ -79,8 +79,8 @@ type SongsQuery struct {
 }
 
 type SongDetailQuery struct {
-	Group string `form:"group" validate:"required"`
-	Song  string `form:"song" validate:"required"`
+	Group string `form:"group" binding:"required"`
+	Song  string `form:"song" binding:"required"`
 }
 
 func NewSongsQuery() SongsQuery {
@@ -91,10 +91,10 @@ func NewSongsQuery() SongsQuery {
 }
 
 type SongCreateQuery struct {
-	Group       string      `json:"group" validate:"required"`
-	Song        string      `json:"song" validate:"required"`
-	Text        string      `json:"text" validate:"required"`
-	Link        string      `json:"link" validate:"required"`
+	Group       string      `json:"group" binding:"required"`
+	Song        string      `json:"song" binding:"required"`
+	Text        string      `json:"text" binding:"required"`
+	Link        string      `json:"link" binding:"required"`
 	ReleaseDate *DateFormat `json:"releaseDate" validate:"required,datetime"`
 }
 
