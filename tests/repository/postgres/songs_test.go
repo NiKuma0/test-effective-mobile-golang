@@ -123,6 +123,7 @@ func TestCreateSong(t *testing.T) {
 				Group:       "Test Group",
 				Text:        "Some lyrics",
 				ReleaseDate: utils.Ptr(models.DateFormat(time.Now())),
+				Link:        "https://example.com",
 			},
 			getSong: &models.SongDetailQuery{
 				Group: "Test Group",
@@ -135,6 +136,7 @@ func TestCreateSong(t *testing.T) {
 				Group: "Test Group",
 				Song:  "Test Song",
 				Text:  "Some lyrics",
+				Link:  "https://example.com",
 			},
 			getSong: &models.SongDetailQuery{
 				Group: "Test Group",

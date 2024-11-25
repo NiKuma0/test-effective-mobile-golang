@@ -64,13 +64,13 @@ func (sr *SongsRepository) GetSong(ctx context.Context, sdq *models.SongDetailQu
 	row := sr.pool.QueryRowContext(
 		ctx,
 		`
-		SELECT s.id, s.name, s.group_name, substring(s.text for 1024), release_date, char_length(s.text) FROM songs s
+		SELECT s.id, s.name, s.group_name, substring(s.text for 1024), s.release_date, char_length(s.text), s.link FROM songs s
 		WHERE s.name = $1 AND s.group_name = $2
 		`,
 		sdq.Song,
 		sdq.Group,
 	)
-	err := row.Scan(&sm.Id, &sm.Name, &sm.GroupName, &sm.Text, &sm.ReleaseDate, &textLen)
+	err := row.Scan(&sm.Id, &sm.Name, &sm.GroupName, &sm.Text, &sm.ReleaseDate, &textLen, &sm.Link)
 	if textLen > len(sm.Text) {
 		sm.Text += "..."
 	}
@@ -92,9 +92,12 @@ func (sr *SongsRepository) GetSongs(ctx context.Context, sq *models.SongsQuery) 
 		ctx,
 		`
 		SELECT count(*) FROM songs s
-		WHERE (s.name = $1 OR $1 IS NULL) AND (s.group_name = $2 OR $2 IS NULL) AND (s.release_date = $3 OR $3 IS NULL)
+		WHERE (s.name = $1 OR $1 IS NULL)
+		AND (s.group_name = $2 OR $2 IS NULL)
+		AND (s.release_date = $3 OR $3 IS NULL)
+		AND (s.link = $4 OR $4 IS NULL)
 		`,
-		sq.Song, sq.Group, releaseDate,
+		sq.Song, sq.Group, releaseDate, sq.Link,
 	)
 	if err = row.Scan(&amount); err != nil || amount == 0 {
 		return
@@ -104,11 +107,14 @@ func (sr *SongsRepository) GetSongs(ctx context.Context, sq *models.SongsQuery) 
 		ctx,
 		`
 		SELECT s.id, s.name, s.group_name, s.release_date FROM songs s
-		WHERE (s.name = $1 OR $1 IS NULL) AND (s.group_name = $2 OR $2 IS NULL) AND (s.release_date = $3 OR $3 IS NULL)
-		LIMIT $4
-		OFFSET $5
+		WHERE (s.name = $1 OR $1 IS NULL)
+			AND (s.group_name = $2 OR $2 IS NULL)
+			AND (s.release_date = $3 OR $3 IS NULL)
+			AND (s.link = $4 OR $4 IS NULL)
+		LIMIT $5
+		OFFSET $6
 		`,
-		sq.Song, sq.Group, releaseDate, sq.Max, sq.Max*sq.Page,
+		sq.Song, sq.Group, releaseDate, sq.Link, sq.Max, sq.Max*sq.Page,
 	)
 	if err != nil {
 		return
@@ -128,12 +134,12 @@ func (sr *SongsRepository) CreateSong(ctx context.Context, scq *models.SongCreat
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	stmt := `
-	INSERT INTO songs (name, group_name, text, release_date) VALUES ($1, $2, $3, $4);
+	INSERT INTO songs (name, group_name, text, link, release_date) VALUES ($1, $2, $3, $4, $5);
 	`
-	args := []any{scq.Song, scq.Group, scq.Text, scq.ReleaseDate}
+	args := []any{scq.Song, scq.Group, scq.Text, scq.Link, scq.ReleaseDate}
 	if scq.ReleaseDate == nil {
 		stmt = `
-		INSERT INTO songs (name, group_name, text) VALUES ($1, $2, $3);
+		INSERT INTO songs (name, group_name, text, link) VALUES ($1, $2, $3, $4);
 		`
 		args = args[:len(args)-1]
 	}
@@ -176,6 +182,9 @@ func (sr *SongsRepository) UpdateSong(ctx context.Context, su *models.SongUpdate
 	}
 	if su.ReleaseDate != nil {
 		fields["release_date"] = su.ReleaseDate
+	}
+	if su.Link != nil {
+		fields["link"] = su.Link
 	}
 	if len(fields) == 0 {
 		return nil

@@ -74,6 +74,7 @@ type SongsQuery struct {
 	Max         int         `form:"max" validate:"gte=1"`
 	Group       *string     `form:"group"`
 	Song        *string     `form:"song"`
+	Link        *string     `form:"link"`
 	ReleaseDate *DateFormat `form:"releaseDate" validate:"datetime"`
 }
 
@@ -93,6 +94,7 @@ type SongCreateQuery struct {
 	Group       string      `json:"group" validate:"required"`
 	Song        string      `json:"song" validate:"required"`
 	Text        string      `json:"text" validate:"required"`
+	Link        string      `json:"link" validate:"required"`
 	ReleaseDate *DateFormat `json:"releaseDate" validate:"required,datetime"`
 }
 
@@ -101,6 +103,7 @@ type Song struct {
 	GroupName   string     `json:"group"`
 	Name        string     `json:"song"`
 	ReleaseDate DateFormat `json:"releaseDate"`
+	Link        string     `json:"link"`
 }
 
 type SongDetail struct {
@@ -109,6 +112,7 @@ type SongDetail struct {
 	Name        string     `json:"song"`
 	Text        string     `json:"text"`
 	ReleaseDate DateFormat `json:"releaseDate"`
+	Link        string     `json:"link"`
 }
 
 type SongUpdate struct {
@@ -116,4 +120,5 @@ type SongUpdate struct {
 	Name        *string     `json:"song"`
 	Text        *string     `json:"text"`
 	ReleaseDate *DateFormat `json:"releaseDate"`
+	Link        *string     `json:"link"`
 }
